@@ -1,7 +1,4 @@
-const std = @import("std");
-const testing = std.testing;
-
-const expectFmtSnapshot = @import("../root.zig").expectFmtSnapshot;
+const expectFmtSnapshot = @import("../../root.zig").expectFmtSnapshot;
 
 test "nested test" {
     try expectFmtSnapshot(
