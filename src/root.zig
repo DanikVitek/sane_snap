@@ -6,7 +6,70 @@ const testing = std.testing;
 
 test {
     _ = @import("examples/examples.zig");
-    testing.refAllDeclsRecursive(@This());
+}
+
+/// This function is intended to be used only in tests.
+///
+/// This function is used to test the formatted output based on the provided `fmt` and `args`.
+/// If the output does not match the expected output, the test will fail.
+/// The output is compared to the snapshot file in the `snapshots` directory.
+///
+/// ## Arguments:
+/// * `src` is the source location of the call site. To get this, use `@src()`.
+/// * `fmt` is the format string for the expected output.
+/// * `args` is the arguments to the format string.
+///
+/// ## Example:
+/// ```zig
+/// const sane_snap = @import("sane_snap");
+///
+/// fn add(a: i32, b: i32) i32 {
+///     return a + b;
+/// }
+///
+/// test "basic add functionality" {
+///     try sane_snap.expectFmtSnapshot(
+///         @src(),
+///         null,
+///         "{d}",
+///         .{add(3, 7)},
+///     );
+/// }
+/// ```
+pub fn expectFmtSnapshot(src: std.builtin.SourceLocation, testcase: ?usize, comptime fmt: []const u8, args: anytype) !void {
+    const actual: []const u8 = try std.fmt.allocPrint(testing.allocator, fmt, args);
+    defer testing.allocator.free(actual);
+    try compareSnapshotOrCreateNew(src, testcase, actual);
+}
+
+/// This function is intended to be used only in tests.
+///
+/// This function is used to test the formatted output based on the "{any}" formatting of the `actual` arg.
+/// If the output does not match the expected output, the test will fail.
+/// The output is compared to the snapshot file in the `snapshots` directory.
+///
+/// ## Arguments:
+/// * `src` is the source location of the call site. To get this, use `@src()`.
+/// * `actual` is the value to be formatted.
+///
+/// ## Example:
+/// ```zig
+/// const sane_snap = @import("sane_snap");
+///
+/// fn add(a: i32, b: i32) i32 {
+///     return a + b;
+/// }
+///
+/// test "basic add functionality" {
+///     try sane_snap.expectAnySnapshot(
+///         @src(),
+///         null,
+///         add(3, 7),
+///     );
+/// }
+/// ```
+pub fn expectAnySnapshot(src: std.builtin.SourceLocation, testcase: ?usize, actual: anytype) !void {
+    try expectFmtSnapshot(src, testcase, "{any}", .{actual});
 }
 
 fn compareSnapshotOrCreateNew(
@@ -134,64 +197,4 @@ fn streamUntilEof(
         const byte: u8 = reader.readByte() catch |err| if (err == error.EndOfStream) break else return @errorCast(err);
         try writer.writeByte(byte);
     }
-}
-
-/// This function is intended to be used only in tests.
-///
-/// This function is used to test the formatted output based on the provided `fmt` and `args`.
-/// If the output does not match the expected output, the test will fail.
-/// The output is compared to the snapshot file in the `snapshots` directory.
-///
-/// ## Arguments:
-/// * `src` is the source location of the call site. To get this, use `@src()`.
-/// * `fmt` is the format string for the expected output.
-/// * `args` is the arguments to the format string.
-///
-/// ## Example:
-/// ```zig
-/// fn add(a: i32, b: i32) i32 {
-///     return a + b;
-/// }
-///
-/// test "basic add functionality" {
-///     try expectFmtSnapshot(
-///         @src(),
-///         null,
-///         "{d}",
-///         .{add(3, 7)},
-///     );
-/// }
-/// ```
-pub fn expectFmtSnapshot(src: std.builtin.SourceLocation, testcase: ?usize, comptime fmt: []const u8, args: anytype) !void {
-    const actual: []const u8 = try std.fmt.allocPrint(testing.allocator, fmt, args);
-    defer testing.allocator.free(actual);
-    try compareSnapshotOrCreateNew(src, testcase, actual);
-}
-
-/// This function is intended to be used only in tests.
-///
-/// This function is used to test the formatted output based on the "{any}" formatting of the `actual` arg.
-/// If the output does not match the expected output, the test will fail.
-/// The output is compared to the snapshot file in the `snapshots` directory.
-///
-/// ## Arguments:
-/// * `src` is the source location of the call site. To get this, use `@src()`.
-/// * `actual` is the value to be formatted.
-///
-/// ## Example:
-/// ```zig
-/// fn add(a: i32, b: i32) i32 {
-///     return a + b;
-/// }
-///
-/// test "basic add functionality" {
-///     try expectFmtAnySnapshot(
-///         @src(),
-///         null,
-///         add(3, 7),
-///     );
-/// }
-/// ```
-pub fn expectFmtAnySnapshot(src: std.builtin.SourceLocation, testcase: ?usize, actual: anytype) !void {
-    try expectFmtSnapshot(src, testcase, "{any}", .{actual});
 }
