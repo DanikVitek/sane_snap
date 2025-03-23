@@ -4,6 +4,8 @@
 const std = @import("std");
 const testing = std.testing;
 
+const options = @import("options");
+
 test {
     _ = @import("examples/examples.zig");
 }
@@ -108,13 +110,6 @@ fn compareSnapshotOrCreateNew(
     testcase: ?usize,
     actual: []const u8,
 ) !void {
-    const exe_dir_path: []const u8 = try std.fs.selfExeDirPathAlloc(testing.allocator);
-    defer testing.allocator.free(exe_dir_path);
-    // std.debug.panic("{s}", .{exe_dir_path});
-
-    const project_root_dir_path = std.fs.path.dirname(std.fs.path.dirname(std.fs.path.dirname(exe_dir_path).?).?).?;
-    // std.debug.panic("{s}", .{project_root_dir_path});
-
     const test_file_dir_path = std.fs.path.dirname(src.file) orelse "";
 
     const test_file_without_ext = b: {
@@ -141,7 +136,7 @@ fn compareSnapshotOrCreateNew(
     defer testing.allocator.free(snapshot_file_name);
 
     const snapshot_file_path = try std.fs.path.join(testing.allocator, &.{
-        project_root_dir_path,
+        options.build_root_path,
         "src",
         test_file_dir_path,
         "snapshots",

@@ -28,6 +28,20 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const options = b.addOptions();
+
+    var build_root_path_is_owned = false;
+    const build_root_path = b.build_root.path orelse b: {
+        const cwd = b.build_root.handle.realpathAlloc(b.allocator, ".") catch |err| std.debug.panic("{!}", .{err});
+        build_root_path_is_owned = true;
+        break :b cwd;
+    };
+
+    options.addOption([]const u8, "build_root_path", build_root_path);
+    if (build_root_path_is_owned) b.allocator.free(build_root_path);
+
+    lib_mod.addOptions("options", options);
+
     // We will also create a module for our other entry point, 'main.zig'.
     const exe_mod = b.createModule(.{
         // `root_source_file` is the Zig "entry point" of the module. If a module
