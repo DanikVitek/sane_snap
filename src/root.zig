@@ -39,7 +39,7 @@ test {
 pub fn expectFmtSnapshot(src: std.builtin.SourceLocation, testcase: ?usize, comptime fmt: []const u8, args: anytype) !void {
     const actual: []const u8 = try std.fmt.allocPrint(testing.allocator, fmt, args);
     defer testing.allocator.free(actual);
-    try compareSnapshotOrCreateNew(src, testcase, actual);
+    try expectStringSnapshot(src, testcase, actual);
 }
 
 /// This function is intended to be used only in tests.
@@ -70,6 +70,37 @@ pub fn expectFmtSnapshot(src: std.builtin.SourceLocation, testcase: ?usize, comp
 /// ```
 pub fn expectAnySnapshot(src: std.builtin.SourceLocation, testcase: ?usize, actual: anytype) !void {
     try expectFmtSnapshot(src, testcase, "{any}", .{actual});
+}
+
+/// This function is intended to be used only in tests.
+///
+/// This function is used to test the provided `actual` string against the snapshot.
+/// If the value does not match the expected one, the test will fail.
+/// The output is compared to the snapshot file in the `snapshots` directory.
+///
+/// ## Arguments:
+/// * `src` is the source location of the call site. To get this, use `@src()`.
+/// * `actual` is the value to be checked.
+///
+/// ## Example:
+/// ```zig
+/// const sane_snap = @import("sane_snap");
+///
+/// fn add(a: i32, b: i32) i32 {
+///     return a + b;
+/// }
+///
+/// test "basic add functionality" {
+///     var buf: [2]u8 = undefined;
+///     try sane_snap.expectStringSnapshot(
+///         @src(),
+///         null,
+///         try std.fmt.bufPrint(&buf, "{d}", .{add(3, 7)}),
+///     );
+/// }
+/// ```
+pub fn expectStringSnapshot(src: std.builtin.SourceLocation, testcase: ?usize, actual: []const u8) !void {
+    try compareSnapshotOrCreateNew(src, testcase, actual);
 }
 
 fn compareSnapshotOrCreateNew(
