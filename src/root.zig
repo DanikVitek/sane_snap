@@ -137,7 +137,7 @@ fn compareSnapshotOrCreateNew(
 
     const snapshot_file_path = try std.fs.path.join(testing.allocator, &.{
         options.build_root_path,
-        "src",
+        options.root_module,
         test_file_dir_path,
         "snapshots",
         snapshot_file_name,

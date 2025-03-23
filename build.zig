@@ -40,6 +40,16 @@ pub fn build(b: *std.Build) void {
     options.addOption([]const u8, "build_root_path", build_root_path);
     if (build_root_path_is_owned) b.allocator.free(build_root_path);
 
+    const root_module = b.option(
+        []const u8,
+        "root_module",
+        \\Path to the root module of the project,
+        \\relatively to the build root.
+        \\  Defaults to "src"
+        ,
+    ) orelse "src";
+    options.addOption([]const u8, "root_module", root_module);
+
     lib_mod.addOptions("options", options);
 
     // We will also create a module for our other entry point, 'main.zig'.
