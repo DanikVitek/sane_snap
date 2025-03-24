@@ -65,6 +65,14 @@
         //    // actually used.
         //    .lazy = false,
         //},
+        .vaxis = .{
+            .url = "git+https://github.com/rockorager/libvaxis.git#0c2b8046e4f657710ef02b77e070c116852b3a2c",
+            .hash = "vaxis-0.1.0-BWNV_FUICQBW4jXUsQoUlEpd_7454reqJuxeYTqxrbys",
+        },
+        .clap = .{
+            .url = "https://github.com/Hejsil/zig-clap/archive/refs/tags/0.10.0.tar.gz",
+            .hash = "clap-0.10.0-oBajB434AQBDh-Ei3YtoKIRxZacVPF1iSwp3IX_ZB8f0",
+        },
     },
 
     // Specifies the set of files and directories that are included in this package.
@@ -80,6 +88,7 @@
         "build.zig.zon",
         "src/root.zig",
         "src/main.zig",
+        // "src/cli.zig",
         "LICENSE",
     },
 }

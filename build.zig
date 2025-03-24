@@ -15,19 +15,6 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    // This creates a "module", which represents a collection of source files alongside
-    // some compilation options, such as optimization mode and linked system libraries.
-    // Every executable or library we compile will be based on one or more modules.
-    const lib_mod = b.createModule(.{
-        // `root_source_file` is the Zig "entry point" of the module. If a module
-        // only contains e.g. external object files, you can make this `null`.
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
     const options = b.addOptions();
 
     var build_root_path_is_owned = false;
@@ -36,32 +23,33 @@ pub fn build(b: *std.Build) void {
         build_root_path_is_owned = true;
         break :b cwd;
     };
+    defer if (build_root_path_is_owned) b.allocator.free(build_root_path);
 
     options.addOption([]const u8, "build_root_path", build_root_path);
-    if (build_root_path_is_owned) b.allocator.free(build_root_path);
 
     const root_module = b.option(
         []const u8,
         "root_module",
-        \\Path to the root module of the project,
-        \\relatively to the build root.
-        \\  Defaults to "src"
-        ,
+        "The root module of the project. Defaults to \"src\"",
     ) orelse "src";
     options.addOption([]const u8, "root_module", root_module);
 
-    lib_mod.addOptions("options", options);
-
-    // We will also create a module for our other entry point, 'main.zig'.
-    const exe_mod = b.createModule(.{
-        // `root_source_file` is the Zig "entry point" of the module. If a module
-        // only contains e.g. external object files, you can make this `null`.
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = b.path("src/main.zig"),
+    const lib_mod = b.createModule(.{
+        .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    lib_mod.addOptions("options", options);
+
+    const tool_mod, const exe_mod = createCliModules(
+        b,
+        "sane_snap_cli",
+        target,
+        optimize,
+        build_root_path,
+        root_module,
+    );
 
     // // Modules can depend on one another using the `std.Build.Module.addImport` function.
     // // This is what allows Zig source code to use `@import("foo")` where 'foo' is not a
@@ -82,6 +70,16 @@ pub fn build(b: *std.Build) void {
     // running `zig build`).
     b.installArtifact(lib);
 
+    const tool = b.addExecutable(.{
+        .name = "sane_snap",
+        .root_module = tool_mod,
+    });
+
+    const run_tool_cmd = b.addRunArtifact(tool);
+
+    const run_tool_step = b.step("snap", "Run the sane_snap cli as this project's tool");
+    run_tool_step.dependOn(&run_tool_cmd.step);
+
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
     const exe = b.addExecutable(.{
@@ -97,33 +95,37 @@ pub fn build(b: *std.Build) void {
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish
     // such a dependency.
-    const run_cmd = b.addRunArtifact(exe);
+    const run_exe_cmd = b.addRunArtifact(exe);
 
     // By making the run step depend on the install step, it will be run from the
     // installation directory rather than directly from within the cache directory.
     // This is not necessary, however, if the application depends on other installed
     // files, this ensures they will be present and in the expected location.
-    run_cmd.step.dependOn(b.getInstallStep());
+    run_exe_cmd.step.dependOn(b.getInstallStep());
 
     // This allows the user to pass arguments to the application in the build
     // command itself, like this: `zig build run -- arg1 arg2 etc`
     if (b.args) |args| {
-        run_cmd.addArgs(args);
+        run_exe_cmd.addArgs(args);
     }
 
     // This creates a build step. It will be visible in the `zig build --help` menu,
     // and can be selected like this: `zig build run`
     // This will evaluate the `run` step rather than the default, which is "install".
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
+    const run_exe_step = b.step("run", "Run the sane_snap cli as a standalone tool");
+    run_exe_step.dependOn(&run_exe_cmd.step);
 
-    // Creates a step for unit testing. This only builds the test executable
-    // but does not run it.
     const lib_unit_tests = b.addTest(.{
         .root_module = lib_mod,
     });
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
+
+    const tool_unit_tests = b.addTest(.{
+        .root_module = tool_mod,
+    });
+
+    const run_tool_unit_tests = b.addRunArtifact(tool_unit_tests);
 
     const exe_unit_tests = b.addTest(.{
         .root_module = exe_mod,
@@ -136,5 +138,91 @@ pub fn build(b: *std.Build) void {
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
+    test_step.dependOn(&run_tool_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
+}
+
+fn createCliModules(
+    b: *std.Build,
+    name: []const u8,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    build_root_path: []const u8,
+    root_module: []const u8,
+) [2]*std.Build.Module {
+    return .{
+        createCliModule(b, .{ .tool = .{
+            .name = name,
+            .build_root_path = build_root_path,
+            .root_module = root_module,
+        } }),
+        createCliModule(b, .{ .exe = .{
+            .target = target,
+            .optimize = optimize,
+        } }),
+    };
+}
+
+const CreateCliModuleOptions = union(enum) {
+    tool: struct {
+        name: []const u8,
+        build_root_path: []const u8,
+        root_module: []const u8,
+    },
+    exe: struct {
+        target: std.Build.ResolvedTarget,
+        optimize: std.builtin.OptimizeMode,
+    },
+};
+
+fn createCliModule(
+    b: *std.Build,
+    create_options: CreateCliModuleOptions,
+) *std.Build.Module {
+    const mod = switch (create_options) {
+        .tool => |tool| b.addModule(tool.name, .{
+            .root_source_file = b.path("src/main.zig"),
+            .target = b.graph.host,
+        }),
+        .exe => |exe| b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = exe.target,
+            .optimize = exe.optimize,
+        }),
+    };
+
+    const options = b.addOptions();
+
+    const options_writer = options.contents.writer();
+    options_writer.writeAll(
+        \\pub const BuildRoot = struct {
+        \\    path: []const u8,
+        \\    module: []const u8,
+        \\};
+        \\
+        \\pub const build_root: ?BuildRoot = 
+    ) catch @panic("OOM");
+
+    switch (create_options) {
+        .tool => |tool| {
+            options_writer.writeAll(".{\n") catch @panic("OOM");
+            options_writer.print("    .path = \"{}\",\n", .{std.zig.fmtEscapes(tool.build_root_path)}) catch @panic("OOM");
+            options_writer.print("    .module = \"{}\",\n", .{std.zig.fmtEscapes(tool.root_module)}) catch @panic("OOM");
+            options_writer.writeAll("};") catch @panic("OOM");
+        },
+        .exe => {
+            options_writer.writeAll("null;") catch @panic("OOM");
+        },
+    }
+
+    mod.addOptions("options", options);
+
+    const vaxis = b.dependency("vaxis", .{});
+    mod.addImport("vaxis", vaxis.module("vaxis"));
+
+    if (create_options == .exe) {
+        const clap = b.dependency("clap", .{});
+        mod.addImport("clap", clap.module("clap"));
+    }
+    return mod;
 }
