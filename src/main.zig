@@ -52,7 +52,7 @@ pub fn main() !void {
 
         const root_module = res.args.root_module orelse "src";
 
-        break :b try std.fmt.allocPrint(alloc, "{s}{s}", .{ path, root_module });
+        break :b try std.fs.path.join(alloc, &.{ path, root_module });
     };
     defer if (options.build_root == null) alloc.free(sub_path);
 
