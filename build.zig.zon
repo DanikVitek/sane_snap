@@ -92,7 +92,6 @@
         "build.zig.zon",
         "src/root.zig",
         "src/main.zig",
-        // "src/cli.zig",
         "LICENSE",
     },
 }
