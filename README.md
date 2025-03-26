@@ -28,7 +28,7 @@ const exe_mod = b.createModule(...);
 exe_mod.import("sane_snap", sane_snap.module("sane_snap"));
 ```
 
-If you plan on using the CLI, one option is to connect is as a project tool,
+If you plan on using the CLI, one option is to connect the `sane_snap_cli` module as a project tool,
 which can be done by adding the following to your `build.zig` file:
 
 ```zig
