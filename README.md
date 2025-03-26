@@ -2,7 +2,7 @@
 
 Zig library for snapshot testing.
 
-Inspired by the [insta.rs](https://insta.rs) library for Rust.
+Inspired by the [insta.rs](https://insta.rs) library for [Rust](https://www.rust-lang.org/).
 
 Supported Zig version is `0.14.0`.
 
