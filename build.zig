@@ -217,8 +217,11 @@ fn createCliModule(
 
     mod.addOptions("options", options);
 
-    const vaxis = b.dependency("vaxis", .{});
-    mod.addImport("vaxis", vaxis.module("vaxis"));
+    const diffz = b.dependency("diffz", .{});
+    mod.addImport("diffz", diffz.module("diffz"));
+
+    const ansi_term = b.dependency("ansi_term", .{});
+    mod.addImport("ansi_term", ansi_term.module("ansi_term"));
 
     if (create_options == .exe) {
         const clap = b.dependency("clap", .{});

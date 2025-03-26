@@ -65,13 +65,17 @@
         //    // actually used.
         //    .lazy = false,
         //},
-        .vaxis = .{
-            .url = "git+https://github.com/rockorager/libvaxis.git#0c2b8046e4f657710ef02b77e070c116852b3a2c",
-            .hash = "vaxis-0.1.0-BWNV_FUICQBW4jXUsQoUlEpd_7454reqJuxeYTqxrbys",
-        },
         .clap = .{
             .url = "https://github.com/Hejsil/zig-clap/archive/refs/tags/0.10.0.tar.gz",
             .hash = "clap-0.10.0-oBajB434AQBDh-Ei3YtoKIRxZacVPF1iSwp3IX_ZB8f0",
+        },
+        .diffz = .{
+            .url = "git+https://github.com/ziglibs/diffz.git#a20dd1f11b10819a6f570f98b42e1c91e3704357",
+            .hash = "diffz-0.0.1-G2tlIQrOAQCfH15jdyaLyrMgV8eGPouFhkCeYFTmJaLk",
+        },
+        .ansi_term = .{
+            .url = "git+https://github.com/ziglibs/ansi_term.git#c0e6ad093d4f6a9ed4e65d962d1e53b97888f989",
+            .hash = "ansi_term-0.1.0-_baAywpoAABEqsPmS5Jz_CddDCrG8qdIyRIESH8D2fzd",
         },
     },
 
